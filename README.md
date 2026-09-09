@@ -12,7 +12,9 @@ If you use this code, please cite the paper:
     title = {On the reliability of feature attribution methods for speech classification},
     author = {Shen, Gaofei and Mohebbi, Hosein and Bisazza, Arianna and Alishahi, Afra and Chrupa{\l}a, Grzegorz},
     booktitle = {Proceedings of Interspeech 2025},
+    pages = {266--270},
     year = {2025},
+    doi = {10.21437/Interspeech.2025-1911},
     note = {arXiv:2505.16406},
     url = {https://arxiv.org/abs/2505.16406},
 }
@@ -31,7 +33,7 @@ UV_TORCH_BACKEND=auto uv pip install torch
 ## Repository layout
 
 - `src/attributing/` — attribution scoring (`run_attribution.py`) and model wrappers (`model_helper.py`)
-- `src/finetuning/` — fine-tuning scripts for wav2vec2 and distilbert (`run_finetune.py`, `run_finetune_multihead.py`) plus shared helpers (`utils.py`)
+- `src/finetuning/` — fine-tuning scripts plus shared helpers (`utils.py`). `run_finetune.py` supports wav2vec2 and distilbert. `run_finetune_multihead.py` is wav2vec2-only.
 - `src/preprocessing/` — dataset builders for Common Voice speaker-id (`dataset_speakerid.py`), LibriSpeech gender (`dataset_gender.py`), and FSC intent classification (`dataset_ic.py`)
 
 Scripts resolve their data and model directories relative to their own location, so datasets and fine-tuned models live under `src/datasets/` and `src/models/` by default.
@@ -42,21 +44,27 @@ Run scripts with `uv run`.
 
 ### Attribution
 
-`src/attributing/run_attribution.py` computes attribution scores (saliency, integrated gradients, LIME, occlusion, feature ablation) for a trained model. Running it directly launches the `submitit_main` job sweep, which submits Slurm jobs. The argparse interface defines these options:
+`src/attributing/run_attribution.py` computes attribution scores (saliency, integrated gradients, LIME, occlusion, feature ablation) for a trained model.
 
-- `--modelroot` — model root directory (default `models`)
-- `--modeltype` — model type (default `wav2vec2`)
-- `--taskname` — task name (default `cv_genderid`)
-- `--seed` — model seed (default `42`)
-- `--datasplit` — data split (default `test`)
-- `--method` — attribution method (default `saliency`)
-- `--inputtype` — input type (default `input`)
-- `--overwrite` — overwrite existing files (flag)
-- `--subtask` — subtask for the FSC intent-classification model (default `action`)
+Running the script directly calls `submitit_main()`. That function ignores the command line, builds a hardcoded sweep over tasks, seeds, attribution methods, and input types, and submits the jobs to a Slurm cluster with `submitit`. It needs a Slurm cluster and the `submitit` package.
 
 ```bash
 uv run src/attributing/run_attribution.py
 ```
+
+`parse_cmdline_args()` defines an argparse interface, but `__main__` does not call it. The sweep calls `main(args)` directly with a dictionary. To call `main(args)` yourself, supply these keys:
+
+- `modeltype` — model type (default `wav2vec2`)
+- `taskname` — task name (default `cv_genderid`)
+- `seed` — model seed (default `42`)
+- `datasplit` — data split (default `test`)
+- `attrmethod` — attribution method (default `saliency`)
+- `inputtype` — input type (default `input`)
+- `subtask` — subtask for the FSC intent-classification model, or `None` (default `None`)
+- `word_level` — word-level attribution, only for `lime` and `featureablation` (default `False`)
+- `outputname` — output path (required; `main()` reads it to save the scores)
+
+`main()` reads the model root from `src/models` and ignores `modelroot` and `overwrite`. The argparse options are vestigial: `--method` does not set `attrmethod`, and `parse_cmdline_args()` does not define `attrmethod`, `word_level`, or `outputname`.
 
 ### Fine-tuning
 
@@ -66,13 +74,13 @@ uv run src/attributing/run_attribution.py
 uv run src/finetuning/run_finetune.py --seed 42 --model_type wav2vec2 --taskname iemocap --num_epochs 5 --overwrite_output_dir
 ```
 
-`src/finetuning/run_finetune_multihead.py` fine-tunes a wav2vec2 model with three classification heads on the FSC intent-classification task (action, object, location).
+`src/finetuning/run_finetune_multihead.py` fine-tunes a wav2vec2 model with three classification heads on the FSC intent-classification task (action, object, location). This script is wav2vec2-only: it always builds a wav2vec2 model and ignores `--model_type` for architecture selection.
 
 ```bash
 uv run src/finetuning/run_finetune_multihead.py --seed 42 --model_type wav2vec2 --taskname fsc-ic
 ```
 
-Common fine-tuning arguments: `--seed` (default `42`), `--batch_size` (default `64`), `--num_epochs` (default `10`), `--output_dir` (default `src/models`), `--model_type` (`wav2vec2` or `distilbert`), `--taskname`, `--no_cuda` (flag), `--overwrite_output_dir` (flag), `--freeze_embeddings` (flag), `--freeze_projection_layer` (flag).
+Common fine-tuning arguments for `run_finetune.py`: `--seed` (default `42`), `--batch_size` (default `64`), `--num_epochs` (default `10`), `--output_dir` (default `src/models`), `--model_type` (`wav2vec2` or `distilbert`), `--taskname`, `--no_cuda` (flag), `--overwrite_output_dir` (flag), `--freeze_embeddings` (flag), `--freeze_projection_layer` (flag). `run_finetune_multihead.py` accepts the same arguments, but its `--model_type` only changes the output directory name.
 
 ### Preprocessing
 
@@ -83,3 +91,8 @@ uv run src/preprocessing/dataset_speakerid.py
 uv run src/preprocessing/dataset_gender.py
 uv run src/preprocessing/dataset_ic.py
 ```
+
+Notes:
+
+- `dataset_speakerid.py` loads the gated `mozilla-foundation/common_voice_17_0` dataset at module import time, so its standalone command needs Hugging Face authentication and dataset access approval.
+- `dataset_gender.py` reads `src/SPEAKERS.TXT` (the LibriSpeech speaker list). This file is not shipped with the repository; you must supply it.
