@@ -24,17 +24,27 @@ If you use this code, please cite the paper:
 
 `uv` is recommended to set up a Python environment.
 
-First run `uv sync` to install most of the required Python packages. Then install PyTorch according to your accelerator setup. If you just have a standard NVIDIA GPU then the following line should suffice. See [uv documentation](https://docs.astral.sh/uv/guides/integration/pytorch/) for more.
+PyTorch is provided through an extra, so select exactly one extra matching your accelerator. On a CPU-only machine run:
 
 ```bash
-UV_TORCH_BACKEND=auto uv pip install torch
+uv sync --extra cpu
 ```
+
+On a machine with a CUDA 12.1 NVIDIA GPU run:
+
+```bash
+uv sync --extra cu121
+```
+
+The two extras conflict; install only one. See [uv documentation](https://docs.astral.sh/uv/guides/integration/pytorch/) for more.
 
 ## Repository layout
 
 - `src/attributing/` — attribution scoring (`run_attribution.py`) and model wrappers (`model_helper.py`)
 - `src/finetuning/` — fine-tuning scripts plus shared helpers (`utils.py`). `run_finetune.py` supports wav2vec2 and distilbert. `run_finetune_multihead.py` is wav2vec2-only.
 - `src/preprocessing/` — dataset builders for Common Voice speaker-id (`dataset_speakerid.py`), LibriSpeech gender (`dataset_gender.py`), and FSC intent classification (`dataset_ic.py`)
+- `data/` — external input files, currently `SPEAKERS.TXT` for LibriSpeech gender preprocessing (see `data/README.md`)
+- `scripts/` — Slurm launcher wrappers for the attribution sweep and fine-tuning
 
 Scripts resolve their data and model directories relative to their own location, so datasets and fine-tuned models live under `src/datasets/` and `src/models/` by default.
 
@@ -51,6 +61,8 @@ Running the script directly calls `submitit_main()`. That function ignores the c
 ```bash
 uv run src/attributing/run_attribution.py
 ```
+
+`scripts/run_attribution_sweep.sh` wraps the same command and activates `.venv` first. It takes no arguments.
 
 `parse_cmdline_args()` defines an argparse interface, but `__main__` does not call it. The sweep calls `main(args)` directly with a dictionary. To call `main(args)` yourself, supply these keys:
 
@@ -74,6 +86,8 @@ uv run src/attributing/run_attribution.py
 uv run src/finetuning/run_finetune.py --seed 42 --model_type wav2vec2 --taskname iemocap --num_epochs 5 --overwrite_output_dir
 ```
 
+`scripts/run_finetune.sh` wraps this command, activates `.venv` first, and forwards its arguments to `run_finetune.py`.
+
 `src/finetuning/run_finetune_multihead.py` fine-tunes a wav2vec2 model with three classification heads on the FSC intent-classification task (action, object, location). This script is wav2vec2-only: it always builds a wav2vec2 model and ignores `--model_type` for architecture selection.
 
 ```bash
@@ -95,4 +109,4 @@ uv run src/preprocessing/dataset_ic.py
 Notes:
 
 - `dataset_speakerid.py` loads the gated `mozilla-foundation/common_voice_17_0` dataset at module import time, so its standalone command needs Hugging Face authentication and dataset access approval.
-- `dataset_gender.py` reads `src/SPEAKERS.TXT` (the LibriSpeech speaker list). This file is not shipped with the repository; you must supply it.
+- `dataset_gender.py` reads `data/SPEAKERS.TXT` (the LibriSpeech speaker list). This file is not shipped with the repository; you must supply it. See `data/README.md`.
