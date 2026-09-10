@@ -21,6 +21,9 @@ from transformers import (
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+# Repository root, derived relative to this file (src/attributing/run_attribution.py).
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 wdseg_tg = NamedTuple(
@@ -202,7 +205,7 @@ def parse_cmdline_args():
 
 def main(args):
     # Set up the paths
-    PROJECTROOT = os.path.expanduser("~/work_dir/grad-attr-speech")
+    PROJECTROOT = PROJECT_ROOT
     MODELROOT = os.path.join(PROJECTROOT, "models")
     DATAROOT = os.path.join(PROJECTROOT, "datasets")
 
@@ -281,9 +284,7 @@ def main(args):
     # Add textgrid path to dataset
     if "cv" in taskname:
         # Add textgrid path to the dataset
-        commonvoice_tg_root = os.path.expanduser(
-            "~/work_dir/grad-attr-speech/datasets/cv_tg/test"
-        )
+        commonvoice_tg_root = os.path.join(PROJECT_ROOT, "datasets", "cv_tg", "test")
 
         filenames = [x["audio"]["path"] for x in dataset]
         textgrid_path = [
@@ -393,7 +394,7 @@ def submitit_main():
     import submitit
 
     global PROJECTROOT, SAVEROOT, outputname
-    PROJECTROOT = os.path.expanduser("~/work_dir/grad-attr-speech")
+    PROJECTROOT = PROJECT_ROOT
     SAVEROOT = os.path.join(PROJECTROOT, "attribution_scores")
 
     # seeds = [42, 666, 2024]

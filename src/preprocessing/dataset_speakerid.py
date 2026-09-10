@@ -187,7 +187,7 @@ def flatten_tg_dir_structure():
     from tqdm.auto import tqdm
 
     tg_root = os.path.join(DATASET_ROOT, "commonvoice_subset_aligned")
-    new_dir = os.path.join(DATASET_ROOT, "commonvoice_subset_aligned_flat")
+    new_dir = os.path.join(DATASET_ROOT, "cv_tg", "test")
     os.makedirs(new_dir, exist_ok=True)
     tg_files = glob.glob(f"{tg_root}/**/*.TextGrid", recursive=True)
     for tg_file in tqdm(tg_files):

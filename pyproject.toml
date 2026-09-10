@@ -2,7 +2,7 @@
 name = "reliability-speech-feat-attr"
 version = "0.1.0"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "datasets>=3.6.0",
     "librosa>=0.11.0",
@@ -14,7 +14,48 @@ dependencies = [
     "seaborn>=0.13.2",
     "soundfile>=0.13.1",
     "statsmodels>=0.14.4",
+    "submitit>=1.5.3",
     "transformers>=4.52.4",
     "captum>=0.6.0",
     "evaluate>=0.4.0",
 ]
+
+# PyTorch is provided through the extras below. Select exactly one extra
+# matching your accelerator: `uv sync --extra cpu` or `uv sync --extra cu121`.
+[project.optional-dependencies]
+cpu = [
+    "torch==2.5.1",
+    "torchaudio==2.5.1",
+]
+cu121 = [
+    "torch==2.5.1",
+    "torchaudio==2.5.1",
+]
+
+[tool.uv]
+conflicts = [
+    [
+        { extra = "cpu" },
+        { extra = "cu121" },
+    ],
+]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu121", extra = "cu121" },
+]
+torchaudio = [
+    { index = "pytorch-cpu", extra = "cpu" },
+    { index = "pytorch-cu121", extra = "cu121" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
