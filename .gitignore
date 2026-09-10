@@ -172,3 +172,12 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Project-generated data and model artifacts
+src/datasets/
+src/models/
+src/attribution_scores/
+src/slurm_logs/
+*.pkl
+*.TextGrid
+corpora/

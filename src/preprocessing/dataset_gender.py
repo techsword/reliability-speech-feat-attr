@@ -47,7 +47,7 @@ def load_librispeech_as_gender_classification_dataset(
 
     # Loading speaker information
     speaker_metainfo = pd.read_csv(
-        os.path.join(PROJECT_ROOT, "SPEAKERS.TXT"),
+        os.path.join(PROJECT_ROOT, "..", "data", "SPEAKERS.TXT"),
         sep="|",
         skiprows=12,
         skipinitialspace=True,
