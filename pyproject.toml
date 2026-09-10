@@ -22,7 +22,6 @@ dependencies = [
 
 # PyTorch is provided through the extras below. Select exactly one extra
 # matching your accelerator: `uv sync --extra cpu` or `uv sync --extra cu121`.
-# This repository was validated with the cu121 build.
 [project.optional-dependencies]
 cpu = [
     "torch==2.5.1",
