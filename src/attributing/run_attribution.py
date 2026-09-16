@@ -334,6 +334,7 @@ def main(args):
         example_attr_score = attribute(
             attr_func,
             example,
+            batch_size=args.get("batch_size", 8),
             additional_forward_args=additional_forward_args,
             word_level=WORD_LEVEL,
         )
